@@ -172,19 +172,11 @@ class Fishing:
                 ss = np.array(scr)
                 ss = cv2.cvtColor(ss, cv2.IMREAD_COLOR)
 
-                frame = np.array(scr)
-
                 max_loc, max_val, _ = match_image("fishnet.png", ss=ss)
                 if max_val > 0.8:
                     hold_key('space', 0)
             except:
                 continue
-
-            cv2.imshow("fish bar", frame)
-            cv2.setWindowProperty("fish bar", cv2.WND_PROP_TOPMOST, 1)
-            if cv2.waitKey(1) & 0xFF == ord("q"):
-                cv2.destroyAllWindows()
-                cv2.waitKey(1)
     
     def detect_fish_on(self):
         while True:
