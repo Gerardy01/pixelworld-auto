@@ -152,10 +152,13 @@ class Fishing:
 
         while fish_on_pos_x == 0:
             sleep(0.1)
-            max_loc, max_val, _ = match_image("fishon.png", screen_shot())
-            if max_val > 0.8:
-                fish_on_pos_x = max_loc[0]
-                fish_on_pos_y = max_loc[1]
+            try:
+                max_loc, max_val, _ = match_image("fishon.png", screen_shot())
+                if max_val > 0.8:
+                    fish_on_pos_x = max_loc[0]
+                    fish_on_pos_y = max_loc[1]
+            except:
+                continue
 
         while True:
             sleep(0.1)
@@ -181,15 +184,18 @@ class Fishing:
     def detect_fish_on(self):
         while True:
             sleep(0.1)
-            if not self.is_strike: continue
-            max_loc, max_val, _ = match_image("fishon.png", screen_shot())
-            if max_val > 0.8:
-                self.is_catching = True
+            try:
+                if not self.is_strike: continue
+                max_loc, max_val, _ = match_image("fishon.png", screen_shot())
+                if max_val > 0.8:
+                    self.is_catching = True
+                    continue
+                if max_val < 0.8:
+                    self.is_catching = False
+                    continue
+                self.is_strike = False
+            except:
                 continue
-            if max_val < 0.8:
-                self.is_catching = False
-                continue
-            self.is_strike = False
 
     
 
