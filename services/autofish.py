@@ -3,27 +3,39 @@ import random
 import cv2
 import mss
 import numpy as np
+import dxcam
 
 from time import sleep
 
-from utils import screen_shot, match_image, find_image, hold_key
+from utils import screen_shot, match_image, find_image, hold_key, hold_mouse
 from config import IMG_PATH
 
 from PIL import ImageGrab
 
 import time
 import matplotlib.pyplot as plt
-
+pt.PAUSE = 0.001
 class Fishing:
 
-    def auto_fish2(self):
+    def __init__(self):
+        self.is_catching = False
+        self.is_strike = False
+
+    def auto_fish(self):
         screen_width, screen_height = pt.size()
+        fish_on_pos_x = 0
+        fish_on_pos_y = 0
         while True:
+            if fish_on_pos_x == 0:
+                max_loc, max_val, _ = match_image("fishon.png", screen_shot())
+                if max_val > 0.8:
+                    fish_on_pos_x = max_loc[0]
+                    fish_on_pos_y = max_loc[1]
             stc = mss.mss()
             scr = stc.grab(
                 {
-                    "left": screen_width // 2 - 400,
-                    "top": screen_height // 2 - 285,
+                    "left": fish_on_pos_x - 300,
+                    "top": fish_on_pos_y + 55,
                     "width": 800,
                     "height": 50,
                 }
@@ -56,7 +68,6 @@ class Fishing:
             elif acfish_x != 0 and acfish_y != 0:
                 w = active_img.shape[1]
                 h = active_img.shape[0]
-                # cv2.rectangle(frame, (acfish_x, acfish_y), (acfish_x + w, acfish_y + h), (0, 0, 255), 2)
                 cv2.circle(frame, (int(acfish_x), int(acfish_y)), 5, (255, 0, 0), -1)
                 arrow_right_x, arrow_right_y = find_image("arrowright.png", ss)
                 arrow_left_x, arrow_left_y = find_image("arrowleft.png", ss)
@@ -92,26 +103,10 @@ class Fishing:
         max_loc, max_val, img = match_image("fishfinreverse.png", ss)
         if max_val > 0.6:
             return max_loc[0], max_loc[1], img
-        
-        # max_loc, max_val, img = match_image("fishtail.png", ss)
-        # if max_val > 0.8:
-        #     return max_loc[0], max_loc[1], img
-        
-        # max_loc, max_val, img = match_image("fishtailreverse.png", ss)
-        # if max_val > 0.8:
-        #     return max_loc[0], max_loc[1], img
 
         return 0, 0, img
     
     def active_fish_detection(self, ss=screen_shot()):
-
-        # max_loc, max_val, img = match_image("fishgreen.png", ss)
-        # if max_val > 0.6:
-        #     return max_loc[0], max_loc[1], img
-        
-        # max_loc, max_val, img = match_image("fishgreenleft.png", ss)
-        # if max_val > 0.6:
-        #     return max_loc[0], max_loc[1], img
 
         max_loc, max_val, img = match_image("fishtailactiveleft.png", ss)
         if max_val > 0.6:
@@ -119,92 +114,161 @@ class Fishing:
         
         max_loc, max_val, img = match_image("fishtailactiveright.png", ss)
         if max_val > 0.6:
-            return max_loc[0]+22, max_loc[1], img
+            return max_loc[0]+12, max_loc[1], img
 
         return 0, 0, img
+
+    def fish_strike_detection(self):
+        while True:
+            sleep(0.1)
+            try:
+                max_loc, max_val, _ = match_image("strike.png", screen_shot())
+                if max_val > 0.8:
+                    hold_key('space', 0)
+                    self.is_catching = True
+                    self.is_strike = True
+            except:
+                continue
+    
+    def auto_click(self, pos_x, pos_y):
+        while True:
+            try:
+                max_loc, max_val, _ = match_image("take.png", screen_shot())
+                if max_val > 0.8:
+                    pt.moveTo(x=max_loc[0], y=max_loc[1])
+                    hold_mouse('left', 0.1)
+                    continue
+                else:
+                    pt.moveTo(x=pos_x, y=pos_y, duration=random.uniform(0.1, 0.3))
+                    hold_mouse('left', 0.1)
+            except:
+                continue
+            sleep(random.uniform(5, 6))
+    
+    def find_net(self):
+
+        fish_on_pos_x = 0
+        fish_on_pos_y = 0
+
+        while fish_on_pos_x == 0:
+            sleep(0.1)
+            max_loc, max_val, _ = match_image("fishon.png", screen_shot())
+            if max_val > 0.8:
+                fish_on_pos_x = max_loc[0]
+                fish_on_pos_y = max_loc[1]
+
+        while True:
+            sleep(0.1)
+            try:
+                stc = mss.mss()
+                scr = stc.grab(
+                    {
+                        "left": fish_on_pos_x - 200,
+                        "top": fish_on_pos_y + 90,
+                        "width": 600,
+                        "height": 60,
+                    }
+                )
+                ss = np.array(scr)
+                ss = cv2.cvtColor(ss, cv2.IMREAD_COLOR)
+
+                frame = np.array(scr)
+
+                max_loc, max_val, _ = match_image("fishnet.png", ss=ss)
+                if max_val > 0.8:
+                    hold_key('space', 0)
+            except:
+                continue
+
+            cv2.imshow("fish bar", frame)
+            cv2.setWindowProperty("fish bar", cv2.WND_PROP_TOPMOST, 1)
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                cv2.destroyAllWindows()
+                cv2.waitKey(1)
+    
+    def detect_fish_on(self):
+        while True:
+            sleep(0.1)
+            if not self.is_strike: continue
+            max_loc, max_val, _ = match_image("fishon.png", screen_shot())
+            if max_val > 0.8:
+                self.is_catching = True
+                continue
+            if max_val < 0.8:
+                self.is_catching = False
+                continue
+            self.is_strike = False
+
     
 
 
-    def locate_color(self, pic, color = [11, 52, 94], round_val = 15):
+    def auto_fish2(self):
+        
+        fish_on_pos_x = 0
+        fish_on_pos_y = 0
+
+        while fish_on_pos_x == 0:
+            max_loc, max_val, _ = match_image("fishon.png", screen_shot())
+            if max_val > 0.8:
+                fish_on_pos_x = max_loc[0]
+                fish_on_pos_y = max_loc[1]
+
+        camera = dxcam.create()
+        camera.start(region=(fish_on_pos_x - 201, fish_on_pos_y + 66, fish_on_pos_x + 369, fish_on_pos_y + 67), target_fps= 60, video_mode= True)
+
+        while True:
+            if not self.is_catching: continue
+            fish_pic = camera.get_latest_frame()
+            sqr_loc = self.locate_color(fish_pic , color = [8, 255, 29])
+            fish_loc = self.locate_2color(pic=fish_pic, color = ([16, 53, 94], [4, 232, 21]))
+            if sqr_loc != None and fish_loc != None:
+                dis = abs(fish_loc - sqr_loc)
+                eps = 0
+                if dis > eps:
+                    # ke kiri`
+                    if fish_loc< sqr_loc:
+                        pt.keyUp('d')
+                        pt.keyDown('a')
+                    #ke kanan
+                    else:
+                        pt.keyUp('a')
+                        pt.keyDown('d')
+    
+    def locate_color(self, pic, color = [11, 52, 94], round_val = 2):
         shape_rgb = np.array(color)
 
         pic_arr = np.array(pic)    
 
         loc_mask = np.absolute(pic_arr -shape_rgb) <= round_val 
         try:
-            shape_loc =round(np.median(np.where(loc_mask)[1]))
+            shape_loc =round(np.mean(np.where(loc_mask)[1]))
             return shape_loc
         except:
             return None
 
-    def locate_2color(self, pic, color = ([11, 52, 94], [0,198, 15]),block = (0,0), round_val = 10):
+    def locate_2color(self, pic, color = ([11, 52, 94], [0,198, 15]), round_val = 2):
+        
         color1 = np.array(color[0])
         color2 = np.array(color[1])
         pic_arr = np.array(pic)
-        loc_mask1 = np.absolute(pic_arr -color1) <= round_val
+        # loc_mask1 = np.absolute(pic_arr -color1) <= round_val
+        pic_brightness = self.color_brightness(pic)
+        loc_mask1 = pic_brightness <= 55
         loc_mask2 = np.absolute(pic_arr -color2) <= round_val
         mask1_sum = np.sum(loc_mask1)
         mask2_sum = np.sum(loc_mask2)
         area_threshold = 150
         try:
             if mask1_sum > mask2_sum:
-                loc_mask1[block[0]:block[1]] = False
-                # if np.sum(loc_mask1) < 475:
-                #     return None
                 shape1_locs =np.where(loc_mask1)[1]
-                shape_loc = round(np.median(shape1_locs))
+                shape_loc = round(np.mean(shape1_locs))
             else:
-                loc_mask2[block[0]:block[1]] = False
-                if np.sum(loc_mask2) < 1200:
-                    return None
                 shape2_locs =np.where(loc_mask2)[1]
-                shape_loc = round(np.median(shape2_locs))
+                shape_loc = round(np.mean(shape2_locs))
             return shape_loc
         except:
             return None
-        
-    def auto_fish(self):
-        locs_fish = []
-        locs_sqr = []
-        times = []
-        # time_end = time.perf_counter() + 60
-        # while time.perf_counter() < time_end:
-        while True:
-            #get image for fish
-            fish_pic =  ImageGrab.grab(bbox=(290,140,980, 150))
-            #get image for square
-            sqr_pic = ImageGrab.grab(bbox=(290,114,980, 116))
-            
-            #locate square
-            sqr_loc = self.locate_color(sqr_pic, color = [61, 136, 0])
 
-            
-            #move
-            if sqr_loc != None:
-                #locate fish
-                fish_loc = self.locate_2color(pic=fish_pic, color = ([74, 232, 0], [16, 53, 94]), block = (sqr_loc-35, sqr_loc+35))
-                if fish_loc != None:
-                        
-                    # locs_fish.append(fish_loc)
-                    # locs_sqr.append(sqr_loc)
-                    # times.append(time.perf_counter())
-                    dis = abs(fish_loc - sqr_loc)
-                    eps = 5
-                    if dis > eps:
-                        #ke kiri
-                        if fish_loc< sqr_loc:
-                            pt.keyUp('d')
-                            pt.keyDown('a')
-                        #ke kanan
-                        else:
-                            pt.keyUp('a')
-                            pt.keyDown('d')
-
-                else:
-                    pt.keyUp('a')
-                    pt.keyUp('d')
-
-        # plt.scatter(times, aaalocs_fish)
-        # plt.scatter(times, locs_sqr)
-        # plt.show()
+    def color_brightness(self, rgb):
+        return rgb[:, :, 0]*0.21 + rgb[:, :, 1]*0.72 + rgb[:, :, 2]*0.07
     

@@ -1,7 +1,10 @@
 import os
+import threading
+import pyautogui as pt
 
 from services.autofarm import auto_left_right, auto_middle
 from services.action import always_punch_mouse, always_punch
+from utils import must_yes, count_down, ready_start
 from services.autofish import Fishing
 
 path = os.path.dirname(os.path.dirname(__file__))
@@ -40,8 +43,34 @@ class PixelWorldAuto:
             return
         
         if str(action) == "5":
+            print('\nset your cursor right on your fishing spot')
+            must_yes()
+            
+            count_down(1, 'Locating...')
+            x, y = pt.position()
+            print('RECORDED!')
+
+            ready_start()
+
             obj = Fishing()
-            obj.auto_fish()
+
+            strike_detect = threading.Thread(target=obj.fish_strike_detection)
+            strike_detect.daemon = True
+            strike_detect.start()
+
+            strike_detect = threading.Thread(target=obj.auto_click, args=(x, y))
+            strike_detect.daemon = True
+            strike_detect.start()
+
+            strike_detect = threading.Thread(target=obj.find_net)
+            strike_detect.daemon = True
+            strike_detect.start()
+
+            strike_detect = threading.Thread(target=obj.detect_fish_on)
+            strike_detect.daemon = True
+            strike_detect.start()
+
+            obj.auto_fish2()
             return
         
         if str(action) == "0":

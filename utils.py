@@ -4,6 +4,7 @@ import os
 import mss
 import numpy as np
 from time import sleep
+pt.PAUSE = 0.001
 
 from config import IMG_PATH
 
