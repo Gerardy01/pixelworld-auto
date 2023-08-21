@@ -192,6 +192,8 @@ class Fishing:
                     continue
                 if max_val < 0.8:
                     self.is_catching = False
+                    pt.keyUp('a')
+                    pt.keyUp('d')
                     continue
                 self.is_strike = False
             except:
